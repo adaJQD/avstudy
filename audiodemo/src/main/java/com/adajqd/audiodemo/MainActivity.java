@@ -112,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
                 String string = btn.getText().toString();
                 if (string.equals(getString(R.string.start_play))) {
                     btn.setText(getString(R.string.stop_play));
-                    play();
+                    playInModeStatic();
                 } else {
-                    btn.setText(getString(R.string.stop_play));
+                    btn.setText(getString(R.string.start_play));
                     stopPlay();
                 }
                 break;
@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
     /**
      * 播放
      */
-    private void play() {
+    private void playInModeStatic() {
         // static模式，需要将音频数据一次性write到AudioTrack的内部缓冲区
 
         new AsyncTask<Void, Void, Void>() {
@@ -251,21 +251,23 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
 
             @Override
             protected void onPostExecute(Void v) {
-                Log.d(TAG, "Creating track...");
+                Log.i(TAG, "Creating track...audioData.length = " + audioData.length);
 
-                /*java.lang.IllegalArgumentException: Invalid audio buffer size.*/
-
-                //int minBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE_INHZ, CHANNEL_CONFIG, AUDIO_FORMAT);
+                // R.raw.ding铃声文件的相关属性为 22050Hz, 8-bit, Mono
                 audioTrack = new AudioTrack(
                     new AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build(),
-                    new AudioFormat.Builder().setSampleRate(SAMPLE_RATE_INHZ).setEncoding(AUDIO_FORMAT).build(),
+                    new AudioFormat.Builder().setSampleRate(22050)
+                        .setEncoding(AudioFormat.ENCODING_PCM_8BIT)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build(),
                     audioData.length,
                     AudioTrack.MODE_STATIC,
                     AudioManager.AUDIO_SESSION_ID_GENERATE);
-
+                Log.d(TAG, "Writing audio data...");
+                audioTrack.write(audioData, 0, audioData.length);
                 Log.d(TAG, "Starting playback");
                 audioTrack.play();
                 Log.d(TAG, "Playing");
