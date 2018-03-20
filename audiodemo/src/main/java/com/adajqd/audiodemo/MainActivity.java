@@ -22,6 +22,7 @@ import android.widget.Button;
 import com.adajqd.audiodemo.base.MvpView;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
     private Button mBtnConvert;
     private AudioTrack audioTrack;
     private byte[] audioData;
+    private FileInputStream fileInputStream;
 
 
     @Override
@@ -112,7 +114,8 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
                 String string = btn.getText().toString();
                 if (string.equals(getString(R.string.start_play))) {
                     btn.setText(getString(R.string.stop_play));
-                    playInModeStatic();
+                    playInModeStream();
+                    //playInModeStatic();
                 } else {
                     btn.setText(getString(R.string.start_play));
                     stopPlay();
@@ -222,7 +225,56 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
 
 
     /**
-     * 播放
+     * 播放，使用stream模式
+     */
+    private void playInModeStream() {
+        final int minBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE_INHZ, AudioFormat.CHANNEL_OUT_MONO,
+            AUDIO_FORMAT);
+        audioTrack = new AudioTrack(
+            new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build(),
+            new AudioFormat.Builder().setSampleRate(SAMPLE_RATE_INHZ)
+                .setEncoding(AUDIO_FORMAT)
+                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .build(),
+            minBufferSize,
+            AudioTrack.MODE_STREAM,
+            AudioManager.AUDIO_SESSION_ID_GENERATE);
+        audioTrack.play();
+
+        File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "test.pcm");
+        try {
+            fileInputStream = new FileInputStream(file);
+            new Thread(new Runnable() {
+                @Override public void run() {
+                    try {
+                        byte[] tempBuffer = new byte[minBufferSize];
+                        while (fileInputStream.available() > 0) {
+                            int readCount = fileInputStream.read(tempBuffer);
+                            if (readCount == AudioTrack.ERROR_INVALID_OPERATION ||
+                                readCount == AudioTrack.ERROR_BAD_VALUE) {
+                                continue;
+                            }
+                            if (readCount != 0 && readCount != -1) {
+                                audioTrack.write(tempBuffer, 0, readCount);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 播放，使用static模式
      */
     private void playInModeStatic() {
         // static模式，需要将音频数据一次性write到AudioTrack的内部缓冲区
