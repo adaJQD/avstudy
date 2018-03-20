@@ -228,8 +228,13 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
      * 播放，使用stream模式
      */
     private void playInModeStream() {
-        final int minBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE_INHZ, AudioFormat.CHANNEL_OUT_MONO,
-            AUDIO_FORMAT);
+        /*
+        * SAMPLE_RATE_INHZ 对应pcm音频的采样率
+        * channelConfig 对应pcm音频的声道
+        * AUDIO_FORMAT 对应pcm音频的格式
+        * */
+        int channelConfig = AudioFormat.CHANNEL_OUT_MONO;
+        final int minBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE_INHZ, channelConfig, AUDIO_FORMAT);
         audioTrack = new AudioTrack(
             new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -237,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements MvpView, View.OnC
                 .build(),
             new AudioFormat.Builder().setSampleRate(SAMPLE_RATE_INHZ)
                 .setEncoding(AUDIO_FORMAT)
-                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .setChannelMask(channelConfig)
                 .build(),
             minBufferSize,
             AudioTrack.MODE_STREAM,
